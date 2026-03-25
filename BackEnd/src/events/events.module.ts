@@ -7,31 +7,25 @@ import { UserListener } from './listeners/user.listener';
 import { QuestListener } from './listeners/quest.listener';
 import { PayoutListener } from './listeners/payout.listener';
 import { SubmissionListener } from './listeners/submission.listener';
-import { EventStoreService } from './event-store/event-store.service';
-import { EventStore } from './entities/event-store.entity';
-import { QuestEventsHandler } from './handlers/quest-events.handler';
-import { UserEventsHandler } from './handlers/user-events.handler';
-import { SubmissionEventsHandler } from './handlers/submission-events.handler';
-import { DeadLetterHandler } from './handlers/dead-letter.handler';
 
 @Global()
 @Module({
-    imports: [
-        EventEmitterModule.forRoot(eventsConfig),
-        TypeOrmModule.forFeature([EventStore]),
-    ],
-    providers: [
-        EventAuditListener,
-        UserListener,
-        QuestListener,
-        PayoutListener,
-        SubmissionListener,
-        EventStoreService,
-        QuestEventsHandler,
-        UserEventsHandler,
-        SubmissionEventsHandler,
-        DeadLetterHandler,
-    ],
-    exports: [EventEmitterModule, EventStoreService],
+  imports: [EventEmitterModule.forRoot(eventsConfig)],
+  providers: [
+    EventStoreService,
+    EventPersistenceListener,
+    DeadLetterQueueListener,
+    EventAuditListener,
+    UserListener,
+    QuestListener,
+    PayoutListener,
+    SubmissionListener,
+    EventStoreService,
+    QuestEventsHandler,
+    UserEventsHandler,
+    SubmissionEventsHandler,
+    DeadLetterHandler,
+  ],
+  exports: [EventEmitterModule, EventStoreService],
 })
-export class EventsModule { }
+export class EventsModule {}

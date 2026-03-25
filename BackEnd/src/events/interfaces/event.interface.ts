@@ -1,8 +1,6 @@
 export interface IEvent {
-    id: string;
-    type: string;
-    payload: any;
-    metadata?: any;
-    timestamp: Date;
-    version: number;
+  eventName: string;
+  timestamp: Date;
+  payload: any;
+  metadata?: Record<string, any>;
 }
