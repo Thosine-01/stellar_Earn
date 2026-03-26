@@ -13,14 +13,21 @@
  * Dashboard helpers still available (fetchDashboardData etc.)
  */
 
-import { get, patch, del, withRetry, createCancelToken, type CancelToken } from './client';
+import {
+  get,
+  patch,
+  del,
+  withRetry,
+  createCancelToken,
+  type CancelToken,
+} from "./client";
 import type {
   UserResponse,
   UserStatsResponse,
   UpdateProfileRequest,
   UserSearchParams,
   PaginationParams,
-} from '@/lib/types/api.types';
+} from "@/lib/types/api.types";
 
 // Re-export legacy dashboard types for backward compat
 export type {
@@ -30,7 +37,7 @@ export type {
   EarningsData,
   Badge,
   DashboardData,
-} from '../types/dashboard';
+} from "../types/dashboard";
 import type {
   UserStats,
   Quest,
@@ -38,9 +45,10 @@ import type {
   EarningsData,
   Badge,
   DashboardData,
-} from '../types/dashboard';
+} from "../types/dashboard";
 
-const dashboardDelay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const dashboardDelay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 const mockUserStats: UserStats = {
   xp: 2840,
@@ -52,89 +60,90 @@ const mockUserStats: UserStats = {
 
 const mockActiveQuests: Quest[] = [
   {
-    id: 'active-1',
-    title: 'Smart Contract Security Review',
-    description: 'Audit reward distribution contract flow and document findings.',
+    id: "active-1",
+    title: "Smart Contract Security Review",
+    description:
+      "Audit reward distribution contract flow and document findings.",
     reward: 250,
     deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     progress: 72,
-    status: 'active',
-    category: 'Blockchain',
+    status: "active",
+    category: "Blockchain",
   },
   {
-    id: 'active-2',
-    title: 'Documentation Update',
-    description: 'Refresh contributor docs and integration notes.',
+    id: "active-2",
+    title: "Documentation Update",
+    description: "Refresh contributor docs and integration notes.",
     reward: 75,
     deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
     progress: 34,
-    status: 'active',
-    category: 'Documentation',
+    status: "active",
+    category: "Documentation",
   },
   {
-    id: 'active-3',
-    title: 'UI Component Library',
-    description: 'Extend reusable quest card and moderation components.',
+    id: "active-3",
+    title: "UI Component Library",
+    description: "Extend reusable quest card and moderation components.",
     reward: 150,
     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     progress: 58,
-    status: 'active',
-    category: 'Development',
+    status: "active",
+    category: "Development",
   },
 ];
 
 const mockRecentSubmissions: Submission[] = [
   {
-    id: 'submission-1',
-    questId: 'active-1',
-    questTitle: 'Smart Contract Security Review',
+    id: "submission-1",
+    questId: "active-1",
+    questTitle: "Smart Contract Security Review",
     submittedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    status: 'approved',
+    status: "approved",
     reward: 250,
-    feedback: 'Approved after final validation pass.',
+    feedback: "Approved after final validation pass.",
   },
   {
-    id: 'submission-2',
-    questId: 'active-2',
-    questTitle: 'Documentation Update',
+    id: "submission-2",
+    questId: "active-2",
+    questTitle: "Documentation Update",
     submittedAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    status: 'pending',
+    status: "pending",
     reward: 75,
   },
   {
-    id: 'submission-3',
-    questId: 'archive-1',
-    questTitle: 'API Error Handling Improvements',
+    id: "submission-3",
+    questId: "archive-1",
+    questTitle: "API Error Handling Improvements",
     submittedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'rejected',
+    status: "rejected",
     reward: 125,
-    feedback: 'Missing required test coverage.',
+    feedback: "Missing required test coverage.",
   },
 ];
 
 const mockEarningsHistory: EarningsData[] = [
-  { date: '2026-03-01', amount: 120 },
-  { date: '2026-03-08', amount: 300 },
-  { date: '2026-03-15', amount: 180 },
-  { date: '2026-03-22', amount: 450 },
+  { date: "2026-03-01", amount: 120 },
+  { date: "2026-03-08", amount: 300 },
+  { date: "2026-03-15", amount: 180 },
+  { date: "2026-03-22", amount: 450 },
 ];
 
 const mockBadges: Badge[] = [
   {
-    id: 'badge-1',
-    name: 'Fast Finisher',
-    description: 'Completed 10 quests before deadline.',
-    icon: 'bolt',
+    id: "badge-1",
+    name: "Fast Finisher",
+    description: "Completed 10 quests before deadline.",
+    icon: "bolt",
     earnedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    rarity: 'rare',
+    rarity: "rare",
   },
   {
-    id: 'badge-2',
-    name: 'Code Guardian',
-    description: 'Delivered multiple high-quality review submissions.',
-    icon: 'shield',
+    id: "badge-2",
+    name: "Code Guardian",
+    description: "Delivered multiple high-quality review submissions.",
+    icon: "shield",
     earnedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-    rarity: 'epic',
+    rarity: "epic",
   },
 ];
 
@@ -196,7 +205,7 @@ export async function fetchUserQuests(
 export async function updateProfile(
   payload: UpdateProfileRequest,
 ): Promise<UserResponse> {
-  return patch<UserResponse>('/users/profile', payload);
+  return patch<UserResponse>("/users/profile", payload);
 }
 
 // ---------------------------------------------------------------------------
@@ -208,7 +217,7 @@ export async function searchUsers(
   cancelToken?: CancelToken,
 ): Promise<{ users: UserResponse[]; total: number }> {
   return withRetry(() =>
-    get<{ users: UserResponse[]; total: number }>('/users/search', {
+    get<{ users: UserResponse[]; total: number }>("/users/search", {
       params: params as Record<string, unknown>,
       signal: cancelToken?.signal,
     }),
@@ -225,7 +234,7 @@ export async function fetchLeaderboard(
   cancelToken?: CancelToken,
 ): Promise<{ users: UserResponse[]; total: number }> {
   return withRetry(() =>
-    get<{ users: UserResponse[]; total: number }>('/users/leaderboard', {
+    get<{ users: UserResponse[]; total: number }>("/users/leaderboard", {
       params: { page, limit },
       signal: cancelToken?.signal,
     }),
@@ -271,7 +280,11 @@ export async function fetchBadges(): Promise<Badge[]> {
 /**
  * Fetch all dashboard data in parallel for the given Stellar address.
  */
-export async function fetchDashboardData(address?: string): Promise<DashboardData | { userProfile: UserResponse; userStats: UserStatsResponse }> {
+export async function fetchDashboardData(
+  address?: string,
+): Promise<
+  DashboardData | { userProfile: UserResponse; userStats: UserStatsResponse }
+> {
   if (address) {
     const [userProfile, userStats] = await Promise.all([
       fetchUserByAddress(address),
@@ -280,12 +293,13 @@ export async function fetchDashboardData(address?: string): Promise<DashboardDat
     return { userProfile, userStats };
   }
 
-  const [activeQuests, recentSubmissions, earningsHistory, badges] = await Promise.all([
-    fetchActiveQuests(),
-    fetchRecentSubmissions(),
-    fetchEarningsHistory(),
-    fetchBadges(),
-  ]);
+  const [activeQuests, recentSubmissions, earningsHistory, badges] =
+    await Promise.all([
+      fetchActiveQuests(),
+      fetchRecentSubmissions(),
+      fetchEarningsHistory(),
+      fetchBadges(),
+    ]);
 
   return {
     stats: mockUserStats,
