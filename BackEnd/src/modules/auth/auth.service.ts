@@ -2,11 +2,13 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Response } from 'express';
 import { RefreshToken } from './entities/refresh-token.entity';
 import {
   generateChallengeMessage,
@@ -28,6 +30,15 @@ export interface AuthUser {
   stellarAddress: string;
   role: Role;
 }
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+const ACCESS_TOKEN_COOKIE = 'auth_token';
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 @Injectable()
 export class AuthService {
@@ -85,6 +96,48 @@ export class AuthService {
       ...tokens,
       user: this.mapToUserResponse(stellarAddress, role),
     };
+  }
+
+  private async setAuthCookies(
+    response: Response,
+    tokens: TokenResponse,
+  ): Promise<void> {
+    const configService = this.configService;
+    const isProduction = configService.get<string>('NODE_ENV') === 'production';
+    const domain = configService.get<string>('COOKIE_DOMAIN');
+    const sameSite = isProduction ? 'Strict' : 'Lax';
+
+    const accessTokenMaxAge = tokens.expiresIn / 1000;
+    const refreshTokenMaxAge =
+      this.parseExpirationToMs(
+        configService.get<string>('JWT_REFRESH_TOKEN_EXPIRATION', '7d'),
+      ) / 1000;
+
+    response.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite,
+      maxAge: accessTokenMaxAge * 1000,
+      path: '/',
+      domain: domain || undefined,
+    });
+
+    response.cookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite,
+      maxAge: refreshTokenMaxAge * 1000,
+      path: '/',
+      domain: domain || undefined,
+    });
+  }
+
+  private clearAuthCookies(response: Response): void {
+    const configService = this.configService;
+    const domain = configService.get<string>('COOKIE_DOMAIN');
+
+    response.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+    response.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
   }
 
   /**
