@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   UseGuards,
+  Req,
   HttpCode,
   HttpStatus,
   HttpException,
@@ -11,13 +12,13 @@ import {
   Res,
   Req,
 } from '@nestjs/common';
+import type { Response, Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import type { AuthUser } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -167,6 +168,34 @@ export class AuthController {
     });
   }
 
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Redirect to Google for authentication' })
+  googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Handle Google OAuth callback' })
+  async googleCallback(@Req() req: Request): Promise<TokenResponseDto> {
+    return this.authService.loginOAuthUser(req.user as any);
+  }
+
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'Redirect to GitHub for authentication' })
+  githubAuth() {
+    return;
+  }
+
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  @ApiOperation({ summary: 'Handle GitHub OAuth callback' })
+  async githubCallback(@Req() req: Request): Promise<TokenResponseDto> {
+    return this.authService.loginOAuthUser(req.user as any);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth()
@@ -195,7 +224,8 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Res() response: Response,
   ): Promise<void> {
-    await this.authService.revokeToken(user.stellarAddress);
+    const stellarAddress = user.stellarAddress || user.id;
+    await this.authService.revokeToken(stellarAddress);
 
     const cookieDomain = process.env.COOKIE_DOMAIN;
     response.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/', domain: cookieDomain });
@@ -215,7 +245,8 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Res() response: Response,
   ): Promise<void> {
-    await this.authService.revokeToken(user.stellarAddress);
+    const stellarAddress = user.stellarAddress || user.id;
+    await this.authService.revokeToken(stellarAddress);
 
     const cookieDomain = process.env.COOKIE_DOMAIN;
     response.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/', domain: cookieDomain });
