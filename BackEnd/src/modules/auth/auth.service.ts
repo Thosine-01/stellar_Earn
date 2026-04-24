@@ -27,7 +27,7 @@ import { Role } from '../../common/enums/role.enum';
 
 export interface AuthUser {
   id: string;
-  stellarAddress: string;
+  stellarAddress: string | null;
   role: Role;
 }
 
