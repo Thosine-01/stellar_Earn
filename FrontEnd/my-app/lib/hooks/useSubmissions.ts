@@ -72,11 +72,11 @@ export function useSubmissions(
 
   const goToPage = useCallback((page: number) => {
     setPagination({ page });
-  }, []);
+  }, [setPagination]);
 
   const loadMore = useCallback(() => {
     if (pagination.hasMore) setPagination({ page: pagination.page + 1 });
-  }, [pagination.hasMore, pagination.page]);
+  }, [pagination.hasMore, pagination.page, setPagination]);
 
   return {
     submissions,
