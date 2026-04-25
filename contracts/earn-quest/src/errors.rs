@@ -64,4 +64,19 @@ pub enum Error {
     DisputeNotPending = 83,
     DisputeNotAuthorized = 84,
     DisputeAlreadyResolved = 85,
+
+    // Oracle Errors
+    OracleInactive = 90,
+    NoValidOracleData = 91,
+    InvalidOracleConfiguration = 92,
+    OracleResponseMismatch = 93,
+    StaleOracleData = 94,
+    InvalidOracleData = 95,
+    InsufficientOracleConfidence = 96,
+    OracleAlreadyExists = 97,
+    OracleNotFound = 98,
+
+    // Commitment Errors (Front-running prevention)
+    CommitmentNotFound = 100,
+    InvalidCommitment = 101,
 }

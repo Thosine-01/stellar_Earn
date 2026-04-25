@@ -24,6 +24,8 @@ const TOPIC_DISPUTE_WITHDRAWN: Symbol = symbol_short!("disp_wd");
 const TOPIC_ESCROW_DEPOSITED: Symbol = symbol_short!("esc_dep");
 const TOPIC_ESCROW_PAYOUT: Symbol = symbol_short!("esc_pay");
 const TOPIC_ESCROW_REFUNDED: Symbol = symbol_short!("esc_ref");
+const TOPIC_COMMITMENT_SUBMITTED: Symbol = symbol_short!("com_sub");
+const TOPIC_SUBMISSION_REVEALED: Symbol = symbol_short!("sub_rev");
 
 // ═══════════════════════════════════════════════════════════════
 // Enhanced Event Emission with Indexing for Subgraph/Indexer Integration
@@ -337,5 +339,17 @@ pub fn dispute_resolved(env: &Env, quest_id: Symbol, initiator: Address, arbitra
 pub fn dispute_withdrawn(env: &Env, quest_id: Symbol, initiator: Address) {
     let topics = (TOPIC_DISPUTE_WITHDRAWN, quest_id, initiator.clone());
     let data = ();
+    env.events().publish(topics, data);
+}
+
+pub fn commitment_submitted(env: &Env, quest_id: Symbol, submitter: Address, hash: BytesN<32>) {
+    let topics = (TOPIC_COMMITMENT_SUBMITTED, quest_id, submitter);
+    let data = (hash,);
+    env.events().publish(topics, data);
+}
+
+pub fn submission_revealed(env: &Env, quest_id: Symbol, submitter: Address, proof_hash: BytesN<32>) {
+    let topics = (TOPIC_SUBMISSION_REVEALED, quest_id, submitter);
+    let data = (proof_hash,);
     env.events().publish(topics, data);
 }
