@@ -2,7 +2,7 @@ use crate::errors::Error;
 use crate::types::{
     AggregatedPrice, OracleConfig, OracleResponse, OracleType, PriceData, PriceFeedRequest,
 };
-use soroban_sdk::{env, Address, Env, Symbol, U256};
+use soroban_sdk::{Address, Env, Symbol, U256};
 
 /// Oracle module for decentralized price feeds
 pub struct Oracle;

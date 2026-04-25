@@ -533,10 +533,12 @@ impl EarnQuestContract {
         let price = Self::get_price(env, from_asset, to_asset, 300)?; // 5 minutes max age
         
         // Convert amount using price (assuming 7 decimals)
-        let amount_u256 = U256::from_i128(amount);
+        let amount_u256 = U256::from_u128(amount as u128);
         let converted_amount = (amount_u256 * price.weighted_price) / U256::from_u32(10_000_000); // Adjust for 7 decimals
         
-        Ok(converted_amount.to_i128())
+        // Convert back to i128 safely
+        let converted_value = converted_amount.to_u128() as i128;
+        Ok(converted_value)
     }
 
     /// Validate reward amount against oracle price (anti-manipulation)
