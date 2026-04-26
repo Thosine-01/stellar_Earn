@@ -118,15 +118,6 @@ pub fn validate_claim(env: &Env, quest_id: &Symbol, submitter: &Address) -> Resu
     validate_claim_data(&quest, &submission)
 }
 
-    // Validate status transition: Approved -> Paid
-    validation::validate_submission_status_transition(&submission.status, &SubmissionStatus::Paid)?;
-
-    // Validate quest claims limit
-    validation::validate_quest_claims_limit(quest.total_claims)?;
-
-    Ok(())
-}
-
 //================================================================================
 // Batch approval (gas-optimized)
 //================================================================================
