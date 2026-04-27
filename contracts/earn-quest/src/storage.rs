@@ -1,5 +1,6 @@
 use crate::errors::Error;
 use crate::types::{CreatorStats, EscrowBalances, EscrowInfo, EscrowMeta, OracleConfig, PlatformStats, Quest, QuestMetadata, QuestMetadataCore, QuestMetadataExtended, QuestStatus, Role, Submission, SubmissionStatus, UserBadges, UserCore};
+use crate::types::{Quest, QuestStatus, Submission, SubmissionStatus, UserStats, EscrowInfo, QuestMetadata, PlatformStats, CreatorStats, OracleConfig, Commitment};
 use crate::validation;
 use soroban_sdk::{contracttype, Address, Env, Symbol, Vec, String};
 
@@ -69,6 +70,8 @@ pub enum DataKey {
     ReentrancyGuard,
     /// Dispute record keyed by (quest_id, initiator)
     Dispute(Symbol, Address),
+    /// Commitment record for front-running prevention, keyed by (quest_id, submitter)
+    Commitment(Symbol, Address),
 }
 
 //================================================================================
@@ -958,6 +961,35 @@ pub fn get_escrow(env: &Env, quest_id: &Symbol) -> Result<EscrowInfo, Error> {
         created_at: meta.created_at,
         deposit_count: balances.deposit_count,
     })
+}
+
+//================================================================================
+// Commitment Storage Functions
+//================================================================================
+
+pub fn has_commitment(env: &Env, quest_id: &Symbol, submitter: &Address) -> bool {
+    env.storage()
+        .instance()
+        .has(&DataKey::Commitment(quest_id.clone(), submitter.clone()))
+}
+
+pub fn get_commitment(env: &Env, quest_id: &Symbol, submitter: &Address) -> Result<Commitment, Error> {
+    env.storage()
+        .instance()
+        .get(&DataKey::Commitment(quest_id.clone(), submitter.clone()))
+        .ok_or(Error::CommitmentNotFound)
+}
+
+pub fn set_commitment(env: &Env, quest_id: &Symbol, submitter: &Address, commitment: &Commitment) {
+    env.storage()
+        .instance()
+        .set(&DataKey::Commitment(quest_id.clone(), submitter.clone()), commitment);
+}
+
+pub fn delete_commitment(env: &Env, quest_id: &Symbol, submitter: &Address) {
+    env.storage()
+        .instance()
+        .remove(&DataKey::Commitment(quest_id.clone(), submitter.clone()));
 }
 
 /// Delete both escrow entries for a quest (cleanup after terminal state)

@@ -1,9 +1,106 @@
 use crate::errors::Error;
 use crate::events;
 use crate::storage;
-use crate::types::{BatchApprovalInput, EscrowInfo, Submission, SubmissionStatus};
+use crate::types::{BatchApprovalInput, Commitment, EscrowInfo, Submission, SubmissionStatus};
 use crate::validation;
-use soroban_sdk::{Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{xdr::ToXdr, Address, Bytes, BytesN, Env, Symbol, Vec};
+
+/// Commit to a submission by providing a hash of the proof and a secret salt.
+/// This prevents front-running by hiding the actual proof until the reveal phase.
+///
+/// Validates:
+/// - Quest exists and is Active
+/// - Quest has not expired
+/// - User does not already have a submission or commitment
+pub fn commit_submission(
+    env: &Env,
+    quest_id: &Symbol,
+    submitter: &Address,
+    commitment_hash: &BytesN<32>,
+) -> Result<(), Error> {
+    // Verify quest exists and get its data
+    let quest = storage::get_quest(env, quest_id)?;
+    // Validate quest is active
+    validation::validate_quest_is_active(&quest.status)?;
+    // Validate quest has not expired
+    validation::validate_quest_not_expired(env, quest.deadline)?;
+
+    // Check for existing submission to prevent double submission
+    if storage::has_submission(env, quest_id, submitter) {
+        return Err(Error::AlreadyClaimed);
+    }
+
+    // Check for existing commitment
+    if storage::has_commitment(env, quest_id, submitter) {
+        return Err(Error::AlreadyApproved);
+    }
+
+    let commitment = Commitment {
+        hash: commitment_hash.clone(),
+        timestamp: env.ledger().timestamp(),
+    };
+
+    storage::set_commitment(env, quest_id, submitter, &commitment);
+
+    // EMIT EVENT: CommitmentSubmitted
+    events::commitment_submitted(
+        env,
+        quest_id.clone(),
+        submitter.clone(),
+        commitment_hash.clone(),
+    );
+
+    Ok(())
+}
+
+/// Reveal the proof and salt to complete the submission process.
+/// The contract verifies that hash(proof_hash + salt + submitter) matches the commitment.
+///
+/// Validates:
+/// - Commitment exists for the user
+/// - Provided proof and salt match the stored commitment
+pub fn reveal_submission(
+    env: &Env,
+    quest_id: &Symbol,
+    submitter: &Address,
+    proof_hash: &BytesN<32>,
+    salt: &BytesN<32>,
+) -> Result<(), Error> {
+    // 1. Retrieve the stored commitment
+    let commitment = storage::get_commitment(env, quest_id, submitter)?;
+
+    // 2. Verify the commitment: hash(proof_hash + salt + submitter_xdr)
+    let mut data = Bytes::new(env);
+    data.append(&proof_hash.clone().into());
+    data.append(&salt.clone().into());
+    data.append(&submitter.to_xdr(env));
+
+    let calculated_hash = env.crypto().sha256(&data);
+
+    if calculated_hash != commitment.hash {
+        return Err(Error::InvalidCommitment);
+    }
+
+    // 3. Create the actual submission
+    let submission = Submission {
+        quest_id: quest_id.clone(),
+        submitter: submitter.clone(),
+        proof_hash: proof_hash.clone(),
+        status: SubmissionStatus::Pending,
+        timestamp: env.ledger().timestamp(),
+    };
+
+    storage::set_submission(env, quest_id, submitter, &submission);
+
+    // 4. Cleanup the commitment to free up storage
+    storage::delete_commitment(env, quest_id, submitter);
+
+    // 5. EMIT EVENTS
+    events::submission_revealed(env, quest_id.clone(), submitter.clone(), proof_hash.clone());
+    events::proof_submitted(env, quest_id.clone(), submitter.clone(), proof_hash.clone());
+
+    Ok(())
+}
 
 /// Submit proof for a quest with full input validation.
 ///

@@ -24,6 +24,8 @@ const TOPIC_DISPUTE_WITHDRAWN: Symbol = symbol_short!("disp_wd");
 const TOPIC_ESCROW_DEPOSITED: Symbol = symbol_short!("esc_dep");
 const TOPIC_ESCROW_PAYOUT: Symbol = symbol_short!("esc_pay");
 const TOPIC_ESCROW_REFUNDED: Symbol = symbol_short!("esc_ref");
+const TOPIC_COMMITMENT_SUBMITTED: Symbol = symbol_short!("com_sub");
+const TOPIC_SUBMISSION_REVEALED: Symbol = symbol_short!("sub_rev");
 
 // ═══════════════════════════════════════════════════════════════
 // Enhanced Event Emission with Indexing for Subgraph/Indexer Integration
@@ -149,10 +151,15 @@ pub fn proof_submitted(env: &Env, quest_id: Symbol, submitter: Address, proof_ha
 /// * Track all approvals for a user
 /// * Monitor verifier activity
 pub fn submission_approved(env: &Env, quest_id: Symbol, submitter: Address, verifier: Address) {
-    // Topics: [EventName, QuestID, Submitter] - indexed for lookups
-    let topics = (TOPIC_SUBMISSION_APPROVED, quest_id, submitter.clone());
-    // Data: verifier info
-    let data = (verifier,);
+    // Topics: [EventName, QuestID, Submitter, Verifier] - indexed for lookups
+    let topics = (
+        TOPIC_SUBMISSION_APPROVED,
+        quest_id,
+        submitter.clone(),
+        verifier.clone(),
+    );
+    // Data: empty because all filterable identity fields are indexed
+    let data = ();
     env.events().publish(topics, data);
 }
 
@@ -224,11 +231,17 @@ pub fn escrow_deposited(
     env: &Env,
     quest_id: Symbol,
     depositor: Address,
+    token: Address,
     amount: i128,
     total_balance: i128,
 ) {
-    // Topics: [EventName, QuestID, Depositor] - indexed
-    let topics = (TOPIC_ESCROW_DEPOSITED, quest_id, depositor.clone());
+    // Topics: [EventName, QuestID, Depositor, Token] - indexed
+    let topics = (
+        TOPIC_ESCROW_DEPOSITED,
+        quest_id,
+        depositor.clone(),
+        token.clone(),
+    );
     // Data: amounts
     let data = (amount, total_balance);
     env.events().publish(topics, data);
@@ -243,11 +256,12 @@ pub fn escrow_payout(
     env: &Env,
     quest_id: Symbol,
     recipient: Address,
+    token: Address,
     amount: i128,
     remaining: i128,
 ) {
-    // Topics: [EventName, QuestID, Recipient] - indexed
-    let topics = (TOPIC_ESCROW_PAYOUT, quest_id, recipient.clone());
+    // Topics: [EventName, QuestID, Recipient, Token] - indexed
+    let topics = (TOPIC_ESCROW_PAYOUT, quest_id, recipient.clone(), token.clone());
     // Data: amounts
     let data = (amount, remaining);
     env.events().publish(topics, data);
@@ -262,10 +276,11 @@ pub fn escrow_refunded(
     env: &Env,
     quest_id: Symbol,
     recipient: Address,
+    token: Address,
     amount: i128,
 ) {
-    // Topics: [EventName, QuestID, Recipient] - indexed
-    let topics = (TOPIC_ESCROW_REFUNDED, quest_id, recipient.clone());
+    // Topics: [EventName, QuestID, Recipient, Token] - indexed
+    let topics = (TOPIC_ESCROW_REFUNDED, quest_id, recipient.clone(), token.clone());
     // Data: amount
     let data = (amount,);
     env.events().publish(topics, data);
@@ -337,5 +352,17 @@ pub fn dispute_resolved(env: &Env, quest_id: Symbol, initiator: Address, arbitra
 pub fn dispute_withdrawn(env: &Env, quest_id: Symbol, initiator: Address) {
     let topics = (TOPIC_DISPUTE_WITHDRAWN, quest_id, initiator.clone());
     let data = ();
+    env.events().publish(topics, data);
+}
+
+pub fn commitment_submitted(env: &Env, quest_id: Symbol, submitter: Address, hash: BytesN<32>) {
+    let topics = (TOPIC_COMMITMENT_SUBMITTED, quest_id, submitter);
+    let data = (hash,);
+    env.events().publish(topics, data);
+}
+
+pub fn submission_revealed(env: &Env, quest_id: Symbol, submitter: Address, proof_hash: BytesN<32>) {
+    let topics = (TOPIC_SUBMISSION_REVEALED, quest_id, submitter);
+    let data = (proof_hash,);
     env.events().publish(topics, data);
 }

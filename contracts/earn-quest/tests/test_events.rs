@@ -24,6 +24,8 @@ fn test_full_quest_lifecycle_events() {
     let token_address = token_contract_obj.address();
     let token_admin_client = StellarAssetClient::new(&env, &token_address);
 
+    client.initialize(&admin);
+
     // Fund the contract so it can pay out rewards later
     let fund_amount = 1000i128;
     token_admin_client.mint(&contract_id, &fund_amount);
@@ -92,14 +94,16 @@ fn test_full_quest_lifecycle_events() {
     let events = env.events().all();
     let (_, topics, _) = events.last().unwrap();
 
-    // Topics: [EventName, QuestID, Submitter]
+    // Topics: [EventName, QuestID, Submitter, Verifier]
     let t_name: Symbol = topics.get(0).unwrap().into_val(&env);
     let t_id: Symbol = topics.get(1).unwrap().into_val(&env);
     let t_sub: Address = topics.get(2).unwrap().into_val(&env);
+    let t_verifier: Address = topics.get(3).unwrap().into_val(&env);
 
     assert_eq!(t_name, symbol_short!("sub_appr"));
     assert_eq!(t_id, quest_id);
     assert_eq!(t_sub, user);
+    assert_eq!(t_verifier, verifier);
 
     // --- STEP 4: CLAIM REWARD ---
     client.claim_reward(&quest_id, &user);

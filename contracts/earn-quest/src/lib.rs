@@ -22,6 +22,8 @@ use crate::types::{
     PriceData, PriceFeedRequest, Quest, QuestMetadata, QuestStatus, Role, Submission, UserBadges, UserCore, UserStats,
 };
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Symbol, U256, Vec};
+use crate::types::{Badge, BatchApprovalInput, BatchQuestInput, CreatorStats, Dispute, EscrowInfo, PlatformStats, Quest, QuestMetadata, QuestStatus, UserStats, Submission, Commitment};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Symbol, Vec};
 
 #[contract]
 pub struct EarnQuestContract;
@@ -171,6 +173,31 @@ impl EarnQuestContract {
         security::require_not_paused(&env)?;
         admin::require_role(&env, &caller, Role::Admin)?;
         quest::resume_quest(&env, &quest_id, &caller)
+    }
+
+    /// Commit to a submission (Front-running prevention)
+    pub fn commit_submission(
+        env: Env,
+        quest_id: Symbol,
+        submitter: Address,
+        commitment_hash: BytesN<32>,
+    ) -> Result<(), Error> {
+        security::require_not_paused(&env)?;
+        submitter.require_auth();
+        submission::commit_submission(&env, &quest_id, &submitter, &commitment_hash)
+    }
+
+    /// Reveal submission details (Front-running prevention)
+    pub fn reveal_submission(
+        env: Env,
+        quest_id: Symbol,
+        submitter: Address,
+        proof_hash: BytesN<32>,
+        salt: BytesN<32>,
+    ) -> Result<(), Error> {
+        security::require_not_paused(&env)?;
+        submitter.require_auth();
+        submission::reveal_submission(&env, &quest_id, &submitter, &proof_hash, &salt)
     }
 
     /// Submit proof with input validation

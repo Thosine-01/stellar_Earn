@@ -16,6 +16,18 @@ use crate::storage;
 use crate::types::{EscrowBalances, EscrowInfo, EscrowMeta, QuestStatus};
 use crate::validation;
 
+fn available_balance(balances: &EscrowBalances) -> i128 {
+    balances.total_deposited - balances.total_paid_out - balances.total_refunded
+}
+
+fn require_active_escrow(balances: &EscrowBalances) -> Result<(), Error> {
+    if !balances.is_active {
+        return Err(Error::EscrowInactive);
+    }
+
+    Ok(())
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DEPOSIT: Creator locks tokens for a quest
 // ═══════════════════════════════════════════════════════════════
@@ -58,6 +70,10 @@ pub fn deposit(
             is_active: existing.is_active,
             deposit_count: existing.deposit_count,
         }
+    let mut balances = if storage::has_escrow(env, quest_id) {
+        let existing = storage::get_escrow_balances(env, quest_id)?;
+        require_active_escrow(&existing)?;
+        existing
     } else {
         // First deposit — also write cold-path metadata (once only)
         storage::set_escrow_meta(
@@ -84,6 +100,19 @@ pub fn deposit(
 
     let available = escrow.total_deposited - escrow.total_paid_out - escrow.total_refunded;
     events::escrow_deposited(env, quest_id.clone(), depositor.clone(), amount, available);
+    balances.total_deposited += amount;
+    balances.deposit_count += 1;
+    storage::set_escrow_balances(env, quest_id, &balances);
+
+    let available = available_balance(&balances);
+    events::escrow_deposited(
+        env,
+        quest_id.clone(),
+        depositor.clone(),
+        token_address.clone(),
+        amount,
+        available,
+    );
 
     // Transfer tokens: creator → contract (external call, kept last)
     let token_client = token::Client::new(env, token_address);
@@ -104,11 +133,9 @@ pub fn deposit(
 /// Only reads EscrowBalances (hot-path entry) — no Address deserialization.
 pub fn validate_sufficient(env: &Env, quest_id: &Symbol, amount: i128) -> Result<(), Error> {
     let b = storage::get_escrow_balances(env, quest_id)?;
+    require_active_escrow(&b)?;
 
-    if !b.is_active {
-        return Err(Error::EscrowInactive);
-    }
-    let available = b.total_deposited - b.total_paid_out - b.total_refunded;
+    let available = available_balance(&b);
     if available < amount {
         return Err(Error::InsufficientEscrow);
     }
@@ -123,14 +150,14 @@ pub fn record_payout(
     env: &Env,
     quest_id: &Symbol,
     recipient: &Address,
+    token_address: &Address,
     amount: i128,
 ) -> Result<(), Error> {
     let mut b = storage::get_escrow_balances(env, quest_id)?;
 
-    if !b.is_active {
-        return Err(Error::EscrowInactive);
-    }
-    let available = b.total_deposited - b.total_paid_out - b.total_refunded;
+    require_active_escrow(&b)?;
+
+    let available = available_balance(&b);
     if available < amount {
         return Err(Error::InsufficientEscrow);
     }
@@ -138,8 +165,15 @@ pub fn record_payout(
     b.total_paid_out += amount;
     storage::set_escrow_balances(env, quest_id, &b);
 
-    let remaining = b.total_deposited - b.total_paid_out - b.total_refunded;
-    events::escrow_payout(env, quest_id.clone(), recipient.clone(), amount, remaining);
+    let remaining = available_balance(&b);
+    events::escrow_payout(
+        env,
+        quest_id.clone(),
+        recipient.clone(),
+        token_address.clone(),
+        amount,
+        remaining,
+    );
 
     Ok(())
 }
@@ -155,6 +189,7 @@ fn refund_remaining(env: &Env, quest_id: &Symbol) -> Result<i128, Error> {
     let meta = storage::get_escrow_meta(env, quest_id)?;
 
     let available = b.total_deposited - b.total_paid_out - b.total_refunded;
+    let available = available_balance(&b);
     let depositor = meta.depositor.clone();
     let token = meta.token.clone();
 
@@ -179,7 +214,7 @@ fn refund_remaining(env: &Env, quest_id: &Symbol) -> Result<i128, Error> {
             _ => return Err(Error::TransferFailed),
         }
 
-        events::escrow_refunded(env, quest_id.clone(), depositor, available);
+        events::escrow_refunded(env, quest_id.clone(), depositor, token, available);
     }
 
     Ok(available)
@@ -256,10 +291,8 @@ pub fn withdraw_unclaimed(env: &Env, quest_id: &Symbol, caller: &Address) -> Res
         return Err(Error::QuestNotTerminal);
     }
 
-    // Optimized: Single escrow read checks existence and balance together
-    let escrow = storage::get_escrow(env, quest_id)?;
-
-    let available = escrow.total_deposited - escrow.total_paid_out - escrow.total_refunded;
+    let balances = storage::get_escrow_balances(env, quest_id)?;
+    let available = available_balance(&balances);
     if available <= 0 {
         return Err(Error::NoFundsToWithdraw);
     }
@@ -275,7 +308,7 @@ pub fn withdraw_unclaimed(env: &Env, quest_id: &Symbol, caller: &Address) -> Res
 /// Get available balance — reads only EscrowBalances (hot path).
 pub fn get_balance(env: &Env, quest_id: &Symbol) -> Result<i128, Error> {
     let b = storage::get_escrow_balances(env, quest_id)?;
-    Ok(b.total_deposited - b.total_paid_out - b.total_refunded)
+    Ok(available_balance(&b))
 }
 
 /// Get full EscrowInfo view — assembles from both split entries.
