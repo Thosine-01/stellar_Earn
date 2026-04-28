@@ -18,6 +18,7 @@ import {
   createCancelToken,
   type CancelToken,
 } from './client';
+import { env } from '@/lib/config/env';
 import type {
   SubmissionResponse,
   CreateSubmissionRequest,
@@ -227,8 +228,7 @@ export async function uploadProofFile(
   formData.append('file', file);
   formData.append('questId', questId);
 
-  const baseURL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+  const baseURL = env.apiBaseUrl();
 
   return new Promise<UploadProofResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();

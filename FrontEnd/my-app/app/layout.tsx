@@ -14,6 +14,7 @@ import { SkipToContent } from "@/components/a11y/SkipToContent";
 import { A11yAnnouncerProvider } from "@/components/a11y/A11yAnnouncer";
 import PerformanceMonitor from "@/components/ui/PerformanceMonitor";
 import { AppErrorBoundary } from "@/components/error/ErrorBoundary";
+import { EnvValidator } from "@/components/providers/EnvValidator";
 
 
 const geistSans = Geist({
@@ -78,26 +79,28 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>
-          <A11yAnnouncerProvider>
-            <WalletProvider>
-              <AuthProvider>
-                <AnalyticsProvider>
-                  <ToastProvider>
-                    <AppErrorBoundary>
-                      <SkipToContent />
-                      {children}
-                      <PerformanceMonitor />
-                      <ConsentBanner />
-                      <WalletConnectionModal />
-                      <SessionManager />
-                    </AppErrorBoundary>
-                  </ToastProvider>
-                </AnalyticsProvider>
-              </AuthProvider>
-            </WalletProvider>
-          </A11yAnnouncerProvider>
-        </ThemeProvider>
+        <EnvValidator>
+          <ThemeProvider>
+            <A11yAnnouncerProvider>
+              <WalletProvider>
+                <AuthProvider>
+                  <AnalyticsProvider>
+                    <ToastProvider>
+                      <AppErrorBoundary>
+                        <SkipToContent />
+                        {children}
+                        <PerformanceMonitor />
+                        <ConsentBanner />
+                        <WalletConnectionModal />
+                        <SessionManager />
+                      </AppErrorBoundary>
+                    </ToastProvider>
+                  </AnalyticsProvider>
+                </AuthProvider>
+              </WalletProvider>
+            </A11yAnnouncerProvider>
+          </ThemeProvider>
+        </EnvValidator>
       </body>
     </html>
   );

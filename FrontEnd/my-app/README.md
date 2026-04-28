@@ -95,6 +95,23 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 # Optional: Analytics, monitoring
 NEXT_PUBLIC_ANALYTICS_ID=
 ```
+
+**Environment Validation**: The application includes automatic environment variable validation that runs at startup. If required variables are missing, you'll see a clear error page with setup instructions. See [ENV_VALIDATION.md](./ENV_VALIDATION.md) for details.
+
+**Quick Setup**:
+```bash
+# Copy example file
+cp .env.example .env.local
+
+# Edit with your values
+# Restart the dev server
+```
+
+For more information, see:
+- [ENV_VALIDATION.md](./ENV_VALIDATION.md) - Comprehensive validation guide
+- [ENV_VALIDATION_QUICK_REFERENCE.md](./ENV_VALIDATION_QUICK_REFERENCE.md) - Quick reference
+- [.env.example](./.env.example) - Example environment file
+
 FIGMA[link](https://www.figma.com/design/wKinSiQpRv6TDfD3u5lCL7/OneQuestEarn-stellar_Earn?node-id=0-1&p=f&t=7ralfeRlDUA6Mrtz-0)
 ### Development
 

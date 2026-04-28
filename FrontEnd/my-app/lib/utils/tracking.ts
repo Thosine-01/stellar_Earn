@@ -5,6 +5,7 @@
  */
 
 import type { AnalyticsEventPayload } from '@/lib/analytics/events';
+import { env } from '@/lib/config/env';
 
 const CONSENT_KEY = 'stellar_earn_analytics_consent';
 const CONSENT_VERSION = '1';
@@ -51,7 +52,7 @@ export function sanitizePayload(payload?: AnalyticsEventPayload): AnalyticsEvent
 /** Check if we're in analytics test mode (no real tracking). */
 export function isAnalyticsTestMode(): boolean {
   if (typeof window === 'undefined') return true;
-  return process.env.NEXT_PUBLIC_ANALYTICS_TEST_MODE === 'true';
+  return env.analyticsTestMode();
 }
 
 /** In-memory aggregate for admin dashboard (no PII). */

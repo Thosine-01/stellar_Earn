@@ -21,13 +21,13 @@ import {
   type AppError,
 } from '@/lib/utils/error-handler';
 import type { ApiErrorResponse, AuthTokens } from '@/lib/types/api.types';
+import { env } from '@/lib/config/env';
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+const BASE_URL = env.apiBaseUrl();
 const API_VERSION = 'v1';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
